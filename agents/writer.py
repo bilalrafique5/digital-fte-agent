@@ -3,7 +3,7 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from agents.utils import extract_text
 
 llm=ChatGoogleGenerativeAI(
-    model="gemini-3.5-flash",
+    model="gemini-2.5-flash",
     google_api_key=os.getenv("GEMINI_API_KEY"),
     temperature=0.7
 )
