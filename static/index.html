@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Digital FTE — AI Content Agent</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: #0f1115;
+            color: #e6e6e6;
+            margin: 0;
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 28px;
+            margin-bottom: 4px;
+        }
+
+        .subtitle {
+            color: #9aa0a6;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: #1a1d23;
+            border: 1px solid #2a2e36;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            font-size: 13px;
+            color: #9aa0a6;
+            margin-bottom: 6px;
+            margin-top: 16px;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid #2a2e36;
+            background: #0f1115;
+            color: #e6e6e6;
+            font-size: 14px;
+        }
+
+        .checkboxes {
+            display: flex;
+            gap: 16px;
+            margin-top: 6px;
+        }
+
+        .checkboxes label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: #e6e6e6;
+            margin: 0;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        button {
+            margin-top: 24px;
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 8px;
+            background: linear-gradient(90deg, #6366f1, #8b5cf6);
+            color: white;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .strategy-box {
+            background: #0f1115;
+            border-left: 3px solid #6366f1;
+            padding: 14px 16px;
+            border-radius: 6px;
+            font-size: 13px;
+            color: #c7c9cf;
+            white-space: pre-wrap;
+            margin-bottom: 20px;
+        }
+
+        .platform-block {
+            margin-bottom: 24px;
+        }
+
+        .platform-tag {
+            display: inline-block;
+            background: #6366f1;
+            color: white;
+            font-size: 12px;
+            font-weight: 600;
+            padding: 4px 10px;
+            border-radius: 999px;
+            margin-bottom: 10px;
+        }
+
+        .post-text {
+            background: #0f1115;
+            border: 1px solid #2a2e36;
+            border-radius: 8px;
+            padding: 16px;
+            font-size: 14px;
+            line-height: 1.6;
+            white-space: pre-wrap;
+        }
+
+        .feedback {
+            margin-top: 10px;
+            font-size: 13px;
+            color: #9aa0a6;
+            font-style: italic;
+        }
+
+        .loading {
+            text-align: center;
+            color: #9aa0a6;
+            padding: 30px;
+        }
+
+        .error {
+            color: #f87171;
+            background: #2a1313;
+            border: 1px solid #5b1f1f;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1> Digital FTE — AI Content Agent</h1>
+        <p class="subtitle">Multi-agent pipeline: Planner → Writer → Critic</p>
+
+        <div class="card">
+            <label for="topic">Topic / Brand Idea</label>
+            <input type="text" id="topic" placeholder="e.g. remote work productivity tips for small teams">
+
+            <label>Platforms</label>
+            <div class="checkboxes">
+                <label><input type="checkbox" value="LinkedIn" checked> LinkedIn</label>
+                <label><input type="checkbox" value="Twitter" checked> Twitter</label>
+
+            </div>
+
+            <button id="generateBtn" onclick="generateContent()">Generate Content</button>
+        </div>
+
+        <div id="output"></div>
+    </div>
+
+    <script>
+        const API_URL = "http://127.0.0.1:7000/api/generate";
+
+        async function generateContent() {
+            const topic = document.getElementById("topic").value.trim();
+            const platforms = Array.from(document.querySelectorAll('.checkboxes input:checked')).map(cb => cb.value);
+            const btn = document.getElementById("generateBtn");
+            const output = document.getElementById("output");
+
+            if (!topic) {
+                output.innerHTML = '<div class="error">Please enter a topic.</div>';
+                return;
+            }
+            if (platforms.length === 0) {
+                output.innerHTML = '<div class="error">Select at least one platform.</div>';
+                return;
+            }
+
+            btn.disabled = true;
+            btn.textContent = "Generating...";
+            output.innerHTML = '<div class="loading"> Planning →  Writing →  Critiquing...</div>';
+
+            try {
+                const res = await fetch(API_URL, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ topic, platforms })
+                });
+
+                if (!res.ok) {
+                    const err = await res.json().catch(() => ({}));
+                    throw new Error(err.detail || `Request failed with status ${res.status}`);
+                }
+
+                const data = await res.json();
+                renderResults(data);
+            } catch (err) {
+                output.innerHTML = `<div class="error"> ${err.message}</div>`;
+            } finally {
+                btn.disabled = false;
+                btn.textContent = "Generate Content";
+            }
+        }
+
+        function renderResults(data) {
+            const output = document.getElementById("output");
+            let html = `<div class="card">
+    <strong> Content Strategy</strong>
+    <div class="strategy-box">${escapeHtml(data.strategy)}</div>`;
+
+            for (const [platform, result] of Object.entries(data.results)) {
+                html += `
+    <div class="platform-block">
+      <span class="platform-tag">${platform}</span>
+      <div class="post-text">${escapeHtml(result.final_post)}</div>
+      <div class="feedback"> Critic: ${escapeHtml(result.critic_feedback)}</div>
+    </div>`;
+            }
+
+            html += `</div>`;
+            output.innerHTML = html;
+        }
+
+        function escapeHtml(str) {
+            const div = document.createElement("div");
+            div.textContent = str;
+            return div.innerHTML;
+        }
+    </script>
+</body>
+
+</html>
